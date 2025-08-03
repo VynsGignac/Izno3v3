@@ -212,3 +212,50 @@ function getResultText(result) {
             return 'Inconnu';
     }
 }
+
+function saveDataToFirebase(data) {
+  database.ref('matchData').set(data)
+    .then(() => {
+      console.log("Data saved successfully.");
+    })
+    .catch((error) => {
+      console.error("Error saving data: ", error);
+    });
+}
+
+function loadDataFromFirebase() {
+  database.ref('matchData').once('value')
+    .then((snapshot) => {
+      const data = snapshot.val();
+      console.log("Data loaded successfully.", data);
+      // Utilisez les données chargées pour mettre à jour votre application
+    })
+    .catch((error) => {
+      console.error("Error loading data: ", error);
+    });
+}
+
+document.getElementById('matchForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+
+  // Collectez les données du formulaire
+  const matchData = {
+    date: document.getElementById('date').value,
+    team1: [
+      document.getElementById('player1_1').value,
+      document.getElementById('player1_2').value,
+      document.getElementById('player1_3').value
+    ],
+    team2: [
+      document.getElementById('player2_1').value,
+      document.getElementById('player2_2').value,
+      document.getElementById('player2_3').value
+    ],
+    result: document.getElementById('result').value
+  };
+
+  // Sauvegardez les données dans Firebase
+  saveDataToFirebase(matchData);
+
+  alert('Données enregistrées avec succès !');
+});
