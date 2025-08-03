@@ -224,16 +224,48 @@ function saveDataToFirebase(data) {
 }
 
 function loadDataFromFirebase() {
-  database.ref('matchData').once('value')
-    .then((snapshot) => {
-      const data = snapshot.val();
-      console.log("Data loaded successfully.", data);
-      // Utilisez les données chargées pour mettre à jour votre application
-    })
-    .catch((error) => {
-      console.error("Error loading data: ", error);
+    // Remplacez 'matchData' par le chemin correct vers vos données dans Firebase
+    database.ref('matchData').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const container = document.getElementById('dataContainer');
+        container.innerHTML = '<h2>Données depuis Firebase</h2>';
+
+        if (data) {
+            Object.entries(data).forEach(([matchId, match]) => {
+                const matchElement = document.createElement('div');
+                matchElement.className = 'match-item';
+                matchElement.innerHTML = `
+                    <p><strong>Match ID:</strong> ${matchId}</p>
+                    <p><strong>Date:</strong> ${match.date}</p>
+                    <p><strong>Équipe 1:</strong> ${match.team1.join(', ')}</p>
+                    <p><strong>Équipe 2:</strong> ${match.team2.join(', ')}</p>
+                    <p><strong>Résultat:</strong> ${getResultText(match.result)}</p>
+                    <hr>
+                `;
+                container.appendChild(matchElement);
+            });
+        } else {
+            container.innerHTML += '<p>Aucune donnée disponible.</p>';
+        }
     });
 }
+
+// Fonction pour obtenir le texte du résultat
+function getResultText(result) {
+    switch(result) {
+        case 'team1':
+            return 'Équipe 1 gagne';
+        case 'team2':
+            return 'Équipe 2 gagne';
+        case 'draw':
+            return 'Match nul';
+        default:
+            return 'Inconnu';
+    }
+}
+
+// Charger les données lorsque la page se charge
+document.addEventListener('DOMContentLoaded', loadDataFromFirebase);
 
 document.getElementById('matchForm').addEventListener('submit', function(event) {
   event.preventDefault();
@@ -259,3 +291,77 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
 
   alert('Données enregistrées avec succès !');
 });
+
+function deleteMatch(matchId) {
+  // Supprimer le match de la base de données
+  database.ref(`matchData/${matchId}`).remove()
+    .then(() => {
+      console.log("Match supprimé avec succès.");
+      // Recalculer les classements ELO après la suppression
+      recalculateEloRatings();
+    })
+    .catch((error) => {
+      console.error("Erreur lors de la suppression du match : ", error);
+    });
+}
+
+async function recalculateEloRatings() {
+  // Charger tous les matchs restants
+  const snapshot = await database.ref('matchData').once('value');
+  const matches = snapshot.val();
+
+  // Réinitialiser les points ELO
+  const players = new Set();
+  Object.values(matches).forEach(match => {
+    match.team1.forEach(player => players.add(player));
+    match.team2.forEach(player => players.add(player));
+  });
+
+  let eloRatings = {};
+  players.forEach(player => {
+    eloRatings[player] = 1000; // Réinitialiser à la valeur initiale
+  });
+
+  // Recalculer les points ELO pour chaque match restant
+  Object.values(matches).forEach(match => {
+    const { team1, team2, result } = match;
+
+    const avgEloTeam1 = team1.reduce((sum, player) => sum + eloRatings[player], 0) / team1.length;
+    const avgEloTeam2 = team2.reduce((sum, player) => sum + eloRatings[player], 0) / team2.length;
+
+    const K = 32;
+    const expectedScoreTeam1 = 1 / (1 + Math.pow(10, (avgEloTeam2 - avgEloTeam1) / 400));
+    const expectedScoreTeam2 = 1 / (1 + Math.pow(10, (avgEloTeam1 - avgEloTeam2) / 400));
+
+    let actualScoreTeam1, actualScoreTeam2;
+    if (result === 'team1') {
+      actualScoreTeam1 = 1;
+      actualScoreTeam2 = 0;
+    } else if (result === 'team2') {
+      actualScoreTeam1 = 0;
+      actualScoreTeam2 = 1;
+    } else { // match nul
+      actualScoreTeam1 = 0.5;
+      actualScoreTeam2 = 0.5;
+    }
+
+    // Mettre à jour les points ELO
+    team1.forEach(player => {
+      eloRatings[player] += K * (actualScoreTeam1 - expectedScoreTeam1);
+    });
+
+    team2.forEach(player => {
+      eloRatings[player] += K * (actualScoreTeam2 - expectedScoreTeam2);
+    });
+  });
+
+  // Mettre à jour les points ELO dans votre application
+  updateEloRatingsInApp(eloRatings);
+}
+
+function updateEloRatingsInApp(eloRatings) {
+  // Mettre à jour l'affichage des points ELO dans votre application
+  console.log("Nouveaux classements ELO :", eloRatings);
+  // Vous pouvez mettre à jour votre interface utilisateur ici
+}
+
