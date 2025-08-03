@@ -268,8 +268,9 @@ function getResultText(result) {
 document.addEventListener('DOMContentLoaded', loadDataFromFirebase);
 
 document.getElementById('matchForm').addEventListener('submit', function(event) {
+	alert('Recup de FireBase');
   event.preventDefault();
-
+	
   // Collectez les données du formulaire
   const matchData = {
     date: document.getElementById('date').value,
