@@ -101,6 +101,7 @@ function updatePlayerSelect() {
 }
 
 document.getElementById('matchForm').addEventListener('submit', function(event) {
+	alert('subit v1');
     event.preventDefault();
 
     const date = document.getElementById('date').value;
@@ -173,6 +174,7 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
 });
 
 document.getElementById('matchForm').addEventListener('submit', function(event) {	
+	alert('subit v2');
   event.preventDefault();
 	
   // Collectez les données du formulaire
