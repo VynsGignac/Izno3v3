@@ -325,23 +325,31 @@ function calculateEloRatings(matches) {
 
 
 document.getElementById('showMatches').addEventListener('click', function() {
-    const storedData = localStorage.getItem('matchData');
+    // Récupérer les données depuis Firebase
+    firebase.database().ref('matchData').once('value')
+        .then((snapshot) => {
+            const matches = snapshot.val();
 
-    if (storedData) {
-        const matchData = JSON.parse(storedData);
-        const storedDataDiv = document.getElementById('storedData');
-        storedDataDiv.innerHTML = '<h2>Historique des Matchs</h2>';
+            if (matches) {
+                const storedDataDiv = document.getElementById('storedData');
+                storedDataDiv.innerHTML = '<h2>Historique des Matchs</h2>';
 
-        matchData.matchHistory.forEach((match, index) => {
-            storedDataDiv.innerHTML += `
-                <div>
-                    <p><strong>Match ${index + 1}:</strong> ${match.date} | Équipe 1: ${match.team1.join(', ')} | Équipe 2: ${match.team2.join(', ')} | Résultat: ${getResultText(match.result)}</p>
-                </div>
-            `;
+                // Parcourir et afficher chaque match
+                Object.entries(matches).forEach(([matchId, match], index) => {
+                    storedDataDiv.innerHTML += `
+                        <div>
+                            <p><strong>Match ${index + 1}:</strong> ${match.date || 'Date inconnue'} | Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'} | Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'} | Résultat: ${getResultText(match.result)}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                alert('Aucune donnée enregistrée dans Firebase.');
+            }
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la récupération des données depuis Firebase : ", error);
+            alert('Erreur lors de la récupération des données.');
         });
-    } else {
-        alert('Aucune donnée enregistrée.');
-    }
 });
 
 document.getElementById('showPlayerMatches').addEventListener('click', function() {
@@ -539,7 +547,7 @@ function updateEloRatingsInApp(eloRatings) {
   // Vous pouvez mettre à jour votre interface utilisateur ici
 }
 
-const scriptVersion = "version local 0.0.1";
+const scriptVersion = "local 0.0.2";
 
 // Fonction pour afficher la version dans le DOM
 function displayVersion() {
