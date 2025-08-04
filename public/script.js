@@ -3,6 +3,34 @@
 let eloRatings = {};
 let matchHistory = [];
 
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+//const firebaseConfig = {
+  //  apiKey: "AIzaSyBnnqJmvZCu76yMgpusBMt9bzhxOYFmz34",
+    //authDomain: "izno3v3.firebaseapp.com",
+    //projectId: "izno3v3",
+    //storageBucket: "izno3v3.firebasestorage.app",
+    //messagingSenderId: "826745105500",
+    //appId: "1:826745105500:web:2b4bb29610bdcd890b0a99",
+    //measurementId: "G-Y30ZRPT293"
+  //};
+  
+const firebaseConfig = {
+  apiKey: "AIzaSyBnnqJmvZCu76yMgpusBMt9bzhxOYFmz34",
+  authDomain: "izno3v3.firebaseapp.com",
+  databaseURL: "https://izno3v3-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "izno3v3",
+  storageBucket: "izno3v3.firebasestorage.app",
+  messagingSenderId: "826745105500",
+  appId: "1:826745105500:web:2b4bb29610bdcd890b0a99",
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database service
+const database = firebase.database();
+
 // Charger les joueurs depuis localStorage
 function loadPlayers() {
     const storedData = localStorage.getItem('matchData');
@@ -17,10 +45,17 @@ function loadDataFromFirebase() {
     // Remplacez 'matchData' par le chemin correct vers vos données dans Firebase
 	
     database.ref('matchData').on('value', (snapshot) => {
-		alert('Recup de FireBase 2');
+		//alert('Recup de FireBase 2');
         const data = snapshot.val();
-        const container = document.getElementById('dataContainer');
-        container.innerHTML = '<h2>Données depuis Firebase</h2>';
+        //const container = document.getElementById('dataContainer');
+        //container.innerHTML = '<h2>Données depuis Firebase</h2>';
+		
+		const container = document.getElementById('dataContainer'); // Or use querySelector
+		if (container) {
+		  container.innerHTML = '<h2>Données depuis Firebase</h2>';
+		} else {
+		  console.error('Element with ID "dataContainer" not found.');
+		}
 
         if (data) {
             Object.entries(data).forEach(([matchId, match]) => {
@@ -36,18 +71,16 @@ function loadDataFromFirebase() {
                 `;
                 container.appendChild(matchElement);
             });
-			alert('Recup de FireBase succès');
+			//alert('Recup de FireBase succès');
         } else {
             container.innerHTML += '<p>Aucune donnée disponible.</p>';
-			alert('Recup de FireBase echec');
+			//alert('Recup de FireBase echec');
         }
     });
 }
 
 // Charger les données lorsque la page se charge
-document.addEventListener('DOMContentLoaded', loadDataFromFirebase);{
-	alert('Recup de FireBase');
-}
+//document.addEventListener('DOMContentLoaded', loadDataFromFirebase);{alert('Recup de FireBase');}
 
 // Charger les joueurs au chargement de la page
 //document.addEventListener('DOMContentLoaded', loadPlayers);
@@ -59,16 +92,16 @@ function saveData() {
 }
 
 function saveDataToFirebase(data) {
-	alert('Save vers FireBase');
-  database.ref('matchData').set(data)
-    .then(() => {
-		alert('Data saved successfully.');
-      console.log("Data saved successfully.");
-    })
-    .catch((error) => {
-		alert("Error saving data: ", error);
-      console.error("Error saving data: ", error);
-    });
+    // Utiliser push() pour ajouter une nouvelle entrée sans écraser les données existantes
+    database.ref('matchData').push(data)
+        .then(() => {
+            alert('Données enregistrées avec succès.');
+            console.log("Données enregistrées avec succès.");
+        })
+        .catch((error) => {
+            alert("Erreur lors de l'enregistrement des données : " + error);
+            console.error("Erreur lors de l'enregistrement des données : ", error);
+        });
 }
 
 // Mettre à jour le menu déroulant des joueurs
@@ -101,7 +134,7 @@ function updatePlayerSelect() {
 }
 
 document.getElementById('matchForm').addEventListener('submit', function(event) {
-	alert('subit v1');
+	//alert('subit v1');
     event.preventDefault();
 
     const date = document.getElementById('date').value;
@@ -160,7 +193,8 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
     adjustElo(team2, actualScoreTeam2, expectedScoreTeam2);
 
     // Ajouter le match à l'historique avec les variations de points ELO
-    matchHistory.push({ date, team1, team2, result, eloChanges });
+    const matchData = { date, team1, team2, result, eloChanges }; // Declare and assign matchData
+    matchHistory.push(matchData);
 
     // Sauvegarder les données dans localStorage
     saveData();
@@ -173,51 +207,122 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
     alert('Données enregistrées avec succès !');
 });
 
-document.getElementById('matchForm').addEventListener('submit', function(event) {	
-	alert('subit v2');
-  event.preventDefault();
+// document.getElementById('matchForm').addEventListener('submit', function(event) {	
+	////alert('subit v2');
+  // event.preventDefault();
 	
-  // Collectez les données du formulaire
-  const matchData = {
-    date: document.getElementById('date').value,
-    team1: [
-      document.getElementById('player1_1').value,
-      document.getElementById('player1_2').value,
-      document.getElementById('player1_3').value
-    ],
-    team2: [
-      document.getElementById('player2_1').value,
-      document.getElementById('player2_2').value,
-      document.getElementById('player2_3').value
-    ],
-    result: document.getElementById('result').value
-  };
+  ////Collectez les données du formulaire
+  // const matchData = {
+    // date: document.getElementById('date').value,
+    // team1: [
+      // document.getElementById('player1_1').value,
+      // document.getElementById('player1_2').value,
+      // document.getElementById('player1_3').value
+    // ],
+    // team2: [
+      // document.getElementById('player2_1').value,
+      // document.getElementById('player2_2').value,
+      // document.getElementById('player2_3').value
+    // ],
+    // result: document.getElementById('result').value
+  // };
 
-  // Sauvegardez les données dans Firebase
-  console.log("try save Data");
-  saveDataToFirebase(matchData);
+  ////Sauvegardez les données dans Firebase
+  // console.log("try save Data");
+  // saveDataToFirebase(matchData);
 
-  alert('Données enregistrées avec succès !');
-});
+  // alert('Données enregistrées avec succès !');
+// });
 
 document.getElementById('showData').addEventListener('click', function() {
-    const storedData = localStorage.getItem('matchData');
+    // Récupérer les données depuis Firebase
+    firebase.database().ref('matchData').once('value')
+        .then((snapshot) => {
+            const matchData = snapshot.val();
 
-    if (storedData) {
-        const matchData = JSON.parse(storedData);
-        const sortedPlayers = Object.entries(matchData.eloRatings)
-            .sort(([, elo1], [, elo2]) => elo2 - elo1);
+            if (matchData) {
+                // Calculer les classements ELO à partir des données récupérées
+                const playerRatings = calculateEloRatings(matchData);
 
-        const storedDataDiv = document.getElementById('storedData');
-        storedDataDiv.innerHTML = '<h2>Classement des Joueurs</h2>';
+                // Trier les joueurs par classement ELO
+                const sortedPlayers = Object.entries(playerRatings)
+                    .sort(([, elo1], [, elo2]) => elo2 - elo1);
 
-        sortedPlayers.forEach(([player, elo], index) => {
-            storedDataDiv.innerHTML += `<p>${index + 1}. ${player} : ${Math.round(elo)} points</p>`;
+                // Afficher les classements des joueurs
+                const storedDataDiv = document.getElementById('storedData');
+                storedDataDiv.innerHTML = '<h2>Classement des Joueurs</h2>';
+
+                sortedPlayers.forEach(([player, elo], index) => {
+                    storedDataDiv.innerHTML += `<p>${index + 1}. ${player} : ${Math.round(elo)} points</p>`;
+                });
+            } else {
+                alert('Aucune donnée enregistrée dans Firebase.');
+            }
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la récupération des données depuis Firebase : ", error);
+            alert('Erreur lors de la récupération des données.');
         });
-    } else {
-        alert('Aucune donnée enregistrée.');
-    }
 });
+
+// Fonction pour calculer les classements ELO à partir des données des matchs
+function calculateEloRatings(matches) {
+    const playerRatings = {};
+
+    // Initialiser chaque joueur avec un classement ELO de départ
+    Object.values(matches).forEach(match => {
+        [...match.team1, ...match.team2].forEach(player => {
+            if (!playerRatings[player]) {
+                playerRatings[player] = 1000; // Classement ELO initial
+            }
+        });
+    });
+
+    // Mettre à jour les classements ELO en fonction des résultats des matchs
+    Object.values(matches).forEach(match => {
+        if (match.team1 && Array.isArray(match.team1) && match.team2 && Array.isArray(match.team2)) {
+            const { team1, team2, result } = match;
+
+            // Calculer la moyenne des classements ELO pour chaque équipe
+            const avgTeam1Rating = team1.reduce((sum, player) => sum + playerRatings[player], 0) / team1.length;
+            const avgTeam2Rating = team2.reduce((sum, player) => sum + playerRatings[player], 0) / team2.length;
+
+            // Calculer les scores attendus
+            const expectedScoreTeam1 = 1 / (1 + Math.pow(10, (avgTeam2Rating - avgTeam1Rating) / 400));
+            const expectedScoreTeam2 = 1 / (1 + Math.pow(10, (avgTeam1Rating - avgTeam2Rating) / 400));
+
+            // Déterminer les scores réels en fonction du résultat du match
+            let actualScoreTeam1, actualScoreTeam2;
+            if (result === 'team1') {
+                actualScoreTeam1 = 1;
+                actualScoreTeam2 = 0;
+            } else if (result === 'team2') {
+                actualScoreTeam1 = 0;
+                actualScoreTeam2 = 1;
+            } else { // match nul
+                actualScoreTeam1 = 0.5;
+                actualScoreTeam2 = 0.5;
+            }
+
+            // Constante K qui détermine l'impact d'un match sur le classement ELO
+            const K = 32;
+
+            // Mettre à jour les classements ELO des joueurs
+            team1.forEach(player => {
+                playerRatings[player] += K * (actualScoreTeam1 - expectedScoreTeam1);
+            });
+
+            team2.forEach(player => {
+                playerRatings[player] += K * (actualScoreTeam2 - expectedScoreTeam2);
+            });
+        } else {
+            console.warn("match.team1 or match.team2 is not an iterable array for match:", match);
+        }
+    });
+
+    return playerRatings;
+}
+
 
 document.getElementById('showMatches').addEventListener('click', function() {
     const storedData = localStorage.getItem('matchData');
@@ -241,42 +346,108 @@ document.getElementById('showMatches').addEventListener('click', function() {
 
 document.getElementById('showPlayerMatches').addEventListener('click', function() {
     const playerName = document.getElementById('playerSelect').value;
-    const storedData = localStorage.getItem('matchData');
 
-    if (storedData && playerName) {
-        const matchData = JSON.parse(storedData);
-        const playerMatches = matchData.matchHistory.filter(match =>
-            match.team1.includes(playerName) || match.team2.includes(playerName)
-        );
+    if (playerName) {
+        // Récupérer les données depuis Firebase
+        firebase.database().ref('matchData').once('value')
+            .then((snapshot) => {
+                const matches = snapshot.val();
 
-        const storedDataDiv = document.getElementById('storedData');
-        storedDataDiv.innerHTML = `<h2>Historique des matchs pour ${playerName}</h2>`;
+                if (matches) {
+                    // Filtrer les matchs pour le joueur sélectionné
+                    const playerMatches = Object.entries(matches).map(([matchId, match]) => ({ matchId, ...match }))
+                        .filter(match =>
+                            match.team1.includes(playerName) || match.team2.includes(playerName)
+                        );
 
-        if (playerMatches.length > 0) {
-            playerMatches.forEach((match, index) => {
-                const eloChange = match.eloChanges[playerName] || 0;
-                const eloChangeText = eloChange >= 0 ? `+${eloChange}` : `${eloChange}`;
-                storedDataDiv.innerHTML += `
-                    <div>
-                        <p><strong>Match ${index + 1}:</strong> ${match.date} | Équipe 1: ${match.team1.join(', ')} | Équipe 2: ${match.team2.join(', ')} | Résultat: ${getResultText(match.result)} | Points ELO: ${eloChangeText}</p>
-                    </div>
-                `;
+                    const storedDataDiv = document.getElementById('storedData');
+                    storedDataDiv.innerHTML = `<h2>Historique des matchs pour ${playerName}</h2>`;
+
+                    if (playerMatches.length > 0) {
+                        playerMatches.forEach((match, index) => {
+                            // Calculer le changement ELO pour le joueur
+                            const eloChange = match.eloChanges ? match.eloChanges[playerName] : 0;
+                            const eloChangeText = eloChange >= 0 ? `+${eloChange}` : `${eloChange}`;
+
+                            storedDataDiv.innerHTML += `
+                                <div>
+                                    <p><strong>Match ${index + 1}:</strong> ${match.date} | Équipe 1: ${match.team1.join(', ')} | Équipe 2: ${match.team2.join(', ')} | Résultat: ${getResultText(match.result)} | Points ELO: ${eloChangeText}</p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        storedDataDiv.innerHTML += `<p>Aucun match trouvé pour ce joueur.</p>`;
+                    }
+                } else {
+                    alert('Aucune donnée enregistrée dans Firebase.');
+                }
+            })
+            .catch((error) => {
+                console.error("Erreur lors de la récupération des données depuis Firebase : ", error);
+                alert('Erreur lors de la récupération des données.');
             });
-        } else {
-            storedDataDiv.innerHTML += `<p>Aucun match trouvé pour ce joueur.</p>`;
-        }
     } else {
-        alert('Aucune donnée enregistrée ou aucun joueur sélectionné.');
+        alert('Aucun joueur sélectionné.');
     }
 });
 
+// Fonction pour récupérer les joueurs depuis Firebase et remplir la liste déroulante
+function populatePlayerSelect() {
+    firebase.database().ref('matchData').once('value')
+        .then((snapshot) => {
+            const matches = snapshot.val();
+            const players = new Set(); // Utiliser un Set pour éviter les doublons
+
+            if (matches) {
+                // Parcourir tous les matchs et collecter les noms des joueurs
+                Object.values(matches).forEach(match => {
+                    if (match.team1) {
+                        match.team1.forEach(player => players.add(player));
+                    }
+                    if (match.team2) {
+                        match.team2.forEach(player => players.add(player));
+                    }
+                });
+            }
+
+            // Remplir la liste déroulante avec les joueurs
+            const playerSelect = document.getElementById('playerSelect');
+            playerSelect.innerHTML = '<option value="">-- Sélectionnez un joueur --</option>'; // Option par défaut
+
+            players.forEach(player => {
+                const option = document.createElement('option');
+                option.value = player;
+                option.textContent = player;
+                playerSelect.appendChild(option);
+            });
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la récupération des joueurs depuis Firebase : ", error);
+            alert('Erreur lors de la récupération des joueurs.');
+        });
+}
+
+// Appeler la fonction pour remplir la liste déroulante lorsque la page se charge
+document.addEventListener('DOMContentLoaded', populatePlayerSelect);
+
 document.getElementById('clearData').addEventListener('click', function() {
-    localStorage.removeItem('matchData');
-    eloRatings = {};
-    matchHistory = [];
-    document.getElementById('storedData').innerHTML = '';
-    document.getElementById('playerSelect').innerHTML = '<option value="">-- Sélectionnez un joueur --</option>';
-    alert('Données effacées avec succès !');
+    // Supprimer les données de Firebase
+    firebase.database().ref('matchData').remove()
+        .then(() => {
+            // Réinitialiser les variables locales
+            eloRatings = {};
+            matchHistory = [];
+
+            // Réinitialiser l'affichage
+            document.getElementById('storedData').innerHTML = '';
+            document.getElementById('playerSelect').innerHTML = '<option value="">-- Sélectionnez un joueur --</option>';
+
+            alert('Données effacées avec succès de Firebase !');
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la suppression des données de Firebase : ", error);
+            alert('Erreur lors de la suppression des données.');
+        });
 });
 
 
