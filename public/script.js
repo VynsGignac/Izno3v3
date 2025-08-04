@@ -13,10 +13,62 @@ function loadPlayers() {
     }
 }
 
+function loadDataFromFirebase() {
+    // Remplacez 'matchData' par le chemin correct vers vos données dans Firebase
+	
+    database.ref('matchData').on('value', (snapshot) => {
+		alert('Recup de FireBase 2');
+        const data = snapshot.val();
+        const container = document.getElementById('dataContainer');
+        container.innerHTML = '<h2>Données depuis Firebase</h2>';
+
+        if (data) {
+            Object.entries(data).forEach(([matchId, match]) => {
+                const matchElement = document.createElement('div');
+                matchElement.className = 'match-item';
+                matchElement.innerHTML = `
+                    <p><strong>Match ID:</strong> ${matchId}</p>
+                    <p><strong>Date:</strong> ${match.date}</p>
+                    <p><strong>Équipe 1:</strong> ${match.team1.join(', ')}</p>
+                    <p><strong>Équipe 2:</strong> ${match.team2.join(', ')}</p>
+                    <p><strong>Résultat:</strong> ${getResultText(match.result)}</p>
+                    <hr>
+                `;
+                container.appendChild(matchElement);
+            });
+			alert('Recup de FireBase succès');
+        } else {
+            container.innerHTML += '<p>Aucune donnée disponible.</p>';
+			alert('Recup de FireBase echec');
+        }
+    });
+}
+
+// Charger les données lorsque la page se charge
+document.addEventListener('DOMContentLoaded', loadDataFromFirebase);{
+	alert('Recup de FireBase');
+}
+
+// Charger les joueurs au chargement de la page
+//document.addEventListener('DOMContentLoaded', loadPlayers);
+
 // Sauvegarder les données dans localStorage
 function saveData() {
     const matchData = { eloRatings, matchHistory };
     localStorage.setItem('matchData', JSON.stringify(matchData));
+}
+
+function saveDataToFirebase(data) {
+	alert('Save vers FireBase');
+  database.ref('matchData').set(data)
+    .then(() => {
+		alert('Data saved successfully.');
+      console.log("Data saved successfully.");
+    })
+    .catch((error) => {
+		alert("Error saving data: ", error);
+      console.error("Error saving data: ", error);
+    });
 }
 
 // Mettre à jour le menu déroulant des joueurs
@@ -111,11 +163,39 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
 
     // Sauvegarder les données dans localStorage
     saveData();
+	console.log("try save Data");
+	saveDataToFirebase(matchData);
 
     // Mettre à jour le menu déroulant des joueurs
     updatePlayerSelect();
 
     alert('Données enregistrées avec succès !');
+});
+
+document.getElementById('matchForm').addEventListener('submit', function(event) {	
+  event.preventDefault();
+	
+  // Collectez les données du formulaire
+  const matchData = {
+    date: document.getElementById('date').value,
+    team1: [
+      document.getElementById('player1_1').value,
+      document.getElementById('player1_2').value,
+      document.getElementById('player1_3').value
+    ],
+    team2: [
+      document.getElementById('player2_1').value,
+      document.getElementById('player2_2').value,
+      document.getElementById('player2_3').value
+    ],
+    result: document.getElementById('result').value
+  };
+
+  // Sauvegardez les données dans Firebase
+  console.log("try save Data");
+  saveDataToFirebase(matchData);
+
+  alert('Données enregistrées avec succès !');
 });
 
 document.getElementById('showData').addEventListener('click', function() {
@@ -197,58 +277,7 @@ document.getElementById('clearData').addEventListener('click', function() {
     alert('Données effacées avec succès !');
 });
 
-// Charger les joueurs au chargement de la page
-document.addEventListener('DOMContentLoaded', loadPlayers);
 
-function getResultText(result) {
-    switch(result) {
-        case 'team1':
-            return 'Équipe 1 gagne';
-        case 'team2':
-            return 'Équipe 2 gagne';
-        case 'draw':
-            return 'Match nul';
-        default:
-            return 'Inconnu';
-    }
-}
-
-function saveDataToFirebase(data) {
-  database.ref('matchData').set(data)
-    .then(() => {
-      console.log("Data saved successfully.");
-    })
-    .catch((error) => {
-      console.error("Error saving data: ", error);
-    });
-}
-
-function loadDataFromFirebase() {
-    // Remplacez 'matchData' par le chemin correct vers vos données dans Firebase
-    database.ref('matchData').on('value', (snapshot) => {
-        const data = snapshot.val();
-        const container = document.getElementById('dataContainer');
-        container.innerHTML = '<h2>Données depuis Firebase</h2>';
-
-        if (data) {
-            Object.entries(data).forEach(([matchId, match]) => {
-                const matchElement = document.createElement('div');
-                matchElement.className = 'match-item';
-                matchElement.innerHTML = `
-                    <p><strong>Match ID:</strong> ${matchId}</p>
-                    <p><strong>Date:</strong> ${match.date}</p>
-                    <p><strong>Équipe 1:</strong> ${match.team1.join(', ')}</p>
-                    <p><strong>Équipe 2:</strong> ${match.team2.join(', ')}</p>
-                    <p><strong>Résultat:</strong> ${getResultText(match.result)}</p>
-                    <hr>
-                `;
-                container.appendChild(matchElement);
-            });
-        } else {
-            container.innerHTML += '<p>Aucune donnée disponible.</p>';
-        }
-    });
-}
 
 // Fonction pour obtenir le texte du résultat
 function getResultText(result) {
@@ -263,35 +292,6 @@ function getResultText(result) {
             return 'Inconnu';
     }
 }
-
-// Charger les données lorsque la page se charge
-document.addEventListener('DOMContentLoaded', loadDataFromFirebase);
-
-document.getElementById('matchForm').addEventListener('submit', function(event) {
-	alert('Recup de FireBase');
-  event.preventDefault();
-	
-  // Collectez les données du formulaire
-  const matchData = {
-    date: document.getElementById('date').value,
-    team1: [
-      document.getElementById('player1_1').value,
-      document.getElementById('player1_2').value,
-      document.getElementById('player1_3').value
-    ],
-    team2: [
-      document.getElementById('player2_1').value,
-      document.getElementById('player2_2').value,
-      document.getElementById('player2_3').value
-    ],
-    result: document.getElementById('result').value
-  };
-
-  // Sauvegardez les données dans Firebase
-  saveDataToFirebase(matchData);
-
-  alert('Données enregistrées avec succès !');
-});
 
 function deleteMatch(matchId) {
   // Supprimer le match de la base de données
