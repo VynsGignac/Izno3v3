@@ -539,3 +539,15 @@ function updateEloRatingsInApp(eloRatings) {
   // Vous pouvez mettre à jour votre interface utilisateur ici
 }
 
+const scriptVersion = "version web 0.0.1";
+
+// Fonction pour afficher la version dans le DOM
+function displayVersion() {
+    const versionElement = document.getElementById('version');
+    if (versionElement) {
+        versionElement.textContent = `Version: ${scriptVersion}`;
+    }
+}
+
+// Appeler la fonction pour afficher la version lorsque la page se charge
+document.addEventListener('DOMContentLoaded', displayVersion);
