@@ -68,6 +68,20 @@
         .section {
             margin-bottom: 20px;
         }
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .edit-button {
+            margin-left: 10px;
+            background-color: #28a745;
+        }
+        .edit-button:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -111,8 +125,11 @@
                 </div>
 
                 <button type="submit">Soumettre</button>
+				<button type="button" id="cancelButton">Annuler</button>
             </form>
         </div>
+		
+
 
         <div class="data-container">
             <div class="section">

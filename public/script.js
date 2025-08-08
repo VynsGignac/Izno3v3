@@ -133,8 +133,10 @@ function updatePlayerSelect() {
     }
 }
 
+// Assurez-vous que currentMatchId est défini quelque part dans votre code
+let currentMatchId = null; // Variable pour stocker l'ID du match en cours de modification
+
 document.getElementById('matchForm').addEventListener('submit', function(event) {
-	//alert('subit v1');
     event.preventDefault();
 
     const date = document.getElementById('date').value;
@@ -180,7 +182,6 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
 
     // Stocker les variations de points ELO pour chaque joueur
     const eloChanges = {};
-
     const adjustElo = (team, actualScore, expectedScore) => {
         team.forEach(player => {
             const oldElo = eloRatings[player];
@@ -193,46 +194,38 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
     adjustElo(team2, actualScoreTeam2, expectedScoreTeam2);
 
     // Ajouter le match à l'historique avec les variations de points ELO
-    const matchData = { date, team1, team2, result, eloChanges }; // Declare and assign matchData
-    matchHistory.push(matchData);
+    const matchData = { date, team1, team2, result, eloChanges };
 
-    // Sauvegarder les données dans localStorage
-    saveData();
-	console.log("try save Data");
-	saveDataToFirebase(matchData);
+    const submitButton = document.querySelector('#matchForm button[type="submit"]');
 
-    // Mettre à jour le menu déroulant des joueurs
-    updatePlayerSelect();
-
-    alert('Données enregistrées avec succès !');
+    if (submitButton.textContent === 'Modifier') {
+        // Mettre à jour le match existant dans Firebase
+        database.ref(`matchData/${currentMatchId}`).update(matchData)
+            .then(() => {
+                alert('Match mis à jour avec succès.');
+                resetForm();
+            })
+            .catch((error) => {
+                console.error("Erreur lors de la mise à jour du match : ", error);
+                alert('Erreur lors de la mise à jour du match.');
+            });
+    } else {
+        // Ajouter un nouveau match dans Firebase
+        saveDataToFirebase(matchData);
+    }
+	populatePlayerSelect();
 });
 
-// document.getElementById('matchForm').addEventListener('submit', function(event) {	
-	////alert('subit v2');
-  // event.preventDefault();
-	
-  ////Collectez les données du formulaire
-  // const matchData = {
-    // date: document.getElementById('date').value,
-    // team1: [
-      // document.getElementById('player1_1').value,
-      // document.getElementById('player1_2').value,
-      // document.getElementById('player1_3').value
-    // ],
-    // team2: [
-      // document.getElementById('player2_1').value,
-      // document.getElementById('player2_2').value,
-      // document.getElementById('player2_3').value
-    // ],
-    // result: document.getElementById('result').value
-  // };
-
-  ////Sauvegardez les données dans Firebase
-  // console.log("try save Data");
-  // saveDataToFirebase(matchData);
-
-  // alert('Données enregistrées avec succès !');
-// });
+// Fonction pour réinitialiser le formulaire
+function resetForm() {
+    document.getElementById('matchForm').reset();
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    document.getElementById('date').value = formattedDate;
+    const submitButton = document.querySelector('#matchForm button[type="submit"]');
+    submitButton.textContent = 'Soumettre';
+    currentMatchId = null;
+}
 
 document.getElementById('showData').addEventListener('click', function() {
     // Récupérer les données depuis Firebase
@@ -324,26 +317,32 @@ function calculateEloRatings(matches) {
 }
 
 
+// Fonction pour afficher les matchs
 document.getElementById('showMatches').addEventListener('click', function() {
-    // Récupérer les données depuis Firebase
     firebase.database().ref('matchData').once('value')
         .then((snapshot) => {
             const matches = snapshot.val();
+            const storedDataDiv = document.getElementById('storedData');
 
             if (matches) {
-                const storedDataDiv = document.getElementById('storedData');
                 storedDataDiv.innerHTML = '<h2>Historique des Matchs</h2>';
 
-                // Parcourir et afficher chaque match
                 Object.entries(matches).forEach(([matchId, match], index) => {
-                    storedDataDiv.innerHTML += `
+                    const matchElement = document.createElement('div');
+                    matchElement.className = 'match-item';
+                    matchElement.innerHTML = `
                         <div>
                             <p><strong>Match ${index + 1}:</strong> ${match.date || 'Date inconnue'} | Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'} | Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'} | Résultat: ${getResultText(match.result)}</p>
                         </div>
+                        <div>
+                            <button class="edit-button" onclick="editMatch('${matchId}')">Modifier</button>
+							<button class="delete-button" onclick="deleteMatch('${matchId}')">Supprimer</button>
+                        </div>
                     `;
+                    storedDataDiv.appendChild(matchElement);
                 });
             } else {
-                alert('Aucune donnée enregistrée dans Firebase.');
+                storedDataDiv.innerHTML = '<p>Aucune donnée enregistrée dans Firebase.</p>';
             }
         })
         .catch((error) => {
@@ -547,7 +546,7 @@ function updateEloRatingsInApp(eloRatings) {
   // Vous pouvez mettre à jour votre interface utilisateur ici
 }
 
-const scriptVersion = "local 0.0.2";
+const scriptVersion = "local 0.0.3";
 
 // Fonction pour afficher la version dans le DOM
 function displayVersion() {
@@ -557,5 +556,63 @@ function displayVersion() {
     }
 }
 
+
+// Fonction pour gérer le clic sur le bouton "Annuler"
+document.getElementById('cancelButton').addEventListener('click', function() {
+    resetForm();
+});
+
+// Fonction pour réinitialiser le formulaire
+function resetForm() {
+    document.getElementById('matchForm').reset();
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    document.getElementById('date').value = formattedDate;
+    const submitButton = document.querySelector('#matchForm button[type="submit"]');
+    submitButton.textContent = 'Soumettre';
+    currentMatchId = null;
+}
+
+// Fonction pour gérer le clic sur le bouton "Supprimer"
+function deleteMatch(matchId) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer ce match ?")) {
+        database.ref(`matchData/${matchId}`).remove()
+            .then(() => {
+                alert('Match supprimé avec succès.');
+				populatePlayerSelect();
+                document.getElementById('showMatches').click(); // Rafraîchir l'affichage
+            })
+            .catch((error) => {
+                console.error("Erreur lors de la suppression du match : ", error);
+                alert('Erreur lors de la suppression du match.');
+            });
+    }
+}
+
+// Fonction pour gérer le clic sur le bouton "Modifier"
+function editMatch(matchId) {
+    currentMatchId = matchId;
+    database.ref(`matchData/${matchId}`).once('value')
+        .then((snapshot) => {
+            const match = snapshot.val();
+            // Charger les données du match dans le formulaire
+            document.getElementById('date').value = match.date || '';
+            document.getElementById('player1_1').value = match.team1[0] || '';
+            document.getElementById('player1_2').value = match.team1[1] || '';
+            document.getElementById('player1_3').value = match.team1[2] || '';
+            document.getElementById('player2_1').value = match.team2[0] || '';
+            document.getElementById('player2_2').value = match.team2[1] || '';
+            document.getElementById('player2_3').value = match.team2[2] || '';
+            document.getElementById('result').value = match.result || '';
+
+            // Changer le texte du bouton de soumission
+            const submitButton = document.querySelector('#matchForm button[type="submit"]');
+            submitButton.textContent = 'Modifier';
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la récupération des données du match : ", error);
+            alert('Erreur lors de la récupération des données du match.');
+        });
+}
 // Appeler la fonction pour afficher la version lorsque la page se charge
 document.addEventListener('DOMContentLoaded', displayVersion);
