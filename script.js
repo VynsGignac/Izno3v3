@@ -3,7 +3,7 @@
 let eloRatings = {};
 let matchHistory = [];
 
-const scriptVersion = "web 0.0.3";
+const scriptVersion = "web 0.0.4";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -142,6 +142,7 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
     event.preventDefault();
 
     const date = document.getElementById('date').value;
+	const user = document.getElementById('user').value; // Récupérer la valeur du champ Utilisateur
     const team1 = [
         document.getElementById('player1_1').value,
         document.getElementById('player1_2').value,
@@ -195,8 +196,9 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
     adjustElo(team1, actualScoreTeam1, expectedScoreTeam1);
     adjustElo(team2, actualScoreTeam2, expectedScoreTeam2);
 
+	localStorage.setItem('user', user);
     // Ajouter le match à l'historique avec les variations de points ELO
-    const matchData = { date, team1, team2, result, eloChanges };
+    const matchData = { date, user, team1, team2, result, eloChanges };
 
     const submitButton = document.querySelector('#matchForm button[type="submit"]');
 
@@ -236,21 +238,60 @@ document.getElementById('showData').addEventListener('click', function() {
     firebase.database().ref('matchData').once('value')
         .then((snapshot) => {
             const matchData = snapshot.val();
-
             if (matchData) {
                 // Calculer les classements ELO à partir des données récupérées
                 const playerRatings = calculateEloRatings(matchData);
+
+                // Calculer le nombre total de matchs et de victoires pour chaque joueur
+                const playerStats = {};
+
+                Object.values(matchData).forEach(match => {
+                    // Compter les matchs joués
+                    match.team1.forEach(player => {
+                        if (!playerStats[player]) {
+                            playerStats[player] = { totalMatches: 0, victories: 0 };
+                        }
+                        playerStats[player].totalMatches++;
+                    });
+
+                    match.team2.forEach(player => {
+                        if (!playerStats[player]) {
+                            playerStats[player] = { totalMatches: 0, victories: 0 };
+                        }
+                        playerStats[player].totalMatches++;
+                    });
+
+                    // Compter les victoires
+                    if (match.result === 'team1') {
+                        match.team1.forEach(player => {
+                            playerStats[player].victories++;
+                        });
+                    } else if (match.result === 'team2') {
+                        match.team2.forEach(player => {
+                            playerStats[player].victories++;
+                        });
+                    }
+                });
+
+                // Calculer le pourcentage de victoires pour chaque joueur
+                Object.keys(playerStats).forEach(player => {
+                    const { totalMatches, victories } = playerStats[player];
+                    playerStats[player].winPercentage = totalMatches > 0 ? (victories / totalMatches) * 100 : 0;
+                });
 
                 // Trier les joueurs par classement ELO
                 const sortedPlayers = Object.entries(playerRatings)
                     .sort(([, elo1], [, elo2]) => elo2 - elo1);
 
-                // Afficher les classements des joueurs
+                // Afficher les classements des joueurs avec les statistiques
                 const storedDataDiv = document.getElementById('storedData');
                 storedDataDiv.innerHTML = '<h2>Classement des Joueurs</h2>';
 
                 sortedPlayers.forEach(([player, elo], index) => {
-                    storedDataDiv.innerHTML += `<p>${index + 1}. ${player} : ${Math.round(elo)} points</p>`;
+                    //const stats = playerStats[player] || { totalMatches: 0, winPercentage: 0 };
+                    //storedDataDiv.innerHTML += `<p>${index + 1}. ${player} : ${Math.round(elo)} points | Matchs joués: ${stats.totalMatches} | % de victoires: ${stats.winPercentage.toFixed(2)}%</p>`;
+					const stats = playerStats[player] || { totalMatches: 0, winPercentage: 0 };
+                    storedDataDiv.innerHTML += `<p>${index + 1}. ${player} : ${Math.round(elo)} points | Matchs : ${stats.totalMatches} (${stats.winPercentage.toFixed(2)}%)</p>`;
                 });
             } else {
                 alert('Aucune donnée enregistrée dans Firebase.');
@@ -261,6 +302,7 @@ document.getElementById('showData').addEventListener('click', function() {
             alert('Erreur lors de la récupération des données.');
         });
 });
+
 
 // Fonction pour calculer les classements ELO à partir des données des matchs
 function calculateEloRatings(matches) {
@@ -336,7 +378,7 @@ document.getElementById('showMatches').addEventListener('click', function() {
                     matchElement.className = 'match-item';
                     matchElement.innerHTML = `
                         <div>
-                            <p><strong>Match ${index + 1}:</strong> ${match.date || 'Date inconnue'} | Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'} | Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'} | Résultat: ${getResultText(match.result)}</p>
+                            <p><strong>Match ${index + 1}:</strong> ${match.date || 'Date inconnue'} | Auteur: ${match.user || 'Inconnu'} | Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'} | Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'} | Résultat: ${getResultText(match.result)}</p>
                         </div>
                         <div>
                             <button class="edit-button" onclick="editMatch('${matchId}')">Modifier</button>
@@ -357,13 +399,11 @@ document.getElementById('showMatches').addEventListener('click', function() {
 
 document.getElementById('showPlayerMatches').addEventListener('click', function() {
     const playerName = document.getElementById('playerSelect').value;
-
     if (playerName) {
         // Récupérer les données depuis Firebase
         firebase.database().ref('matchData').once('value')
             .then((snapshot) => {
                 const matches = snapshot.val();
-
                 if (matches) {
                     // Filtrer les matchs pour le joueur sélectionné
                     const playerMatches = Object.entries(matches).map(([matchId, match]) => ({ matchId, ...match }))
@@ -371,15 +411,31 @@ document.getElementById('showPlayerMatches').addEventListener('click', function(
                             match.team1.includes(playerName) || match.team2.includes(playerName)
                         );
 
+                    // Calculer le nombre total de matchs joués
+                    const totalMatches = playerMatches.length;
+
+                    // Calculer le nombre de victoires
+                    let victories = 0;
+                    playerMatches.forEach(match => {
+                        if ((match.result === 'team1' && match.team1.includes(playerName)) ||
+                            (match.result === 'team2' && match.team2.includes(playerName))) {
+                            victories++;
+                        }
+                    });
+
+                    // Calculer le pourcentage de victoires
+                    const winPercentage = totalMatches > 0 ? (victories / totalMatches) * 100 : 0;
+
                     const storedDataDiv = document.getElementById('storedData');
                     storedDataDiv.innerHTML = `<h2>Historique des matchs pour ${playerName}</h2>`;
+                    storedDataDiv.innerHTML += `<p>Nombre total de matchs joués: ${totalMatches}</p>`;
+                    storedDataDiv.innerHTML += `<p>Pourcentage de victoires: ${winPercentage.toFixed(2)}%</p>`;
 
                     if (playerMatches.length > 0) {
                         playerMatches.forEach((match, index) => {
                             // Calculer le changement ELO pour le joueur
                             const eloChange = match.eloChanges ? match.eloChanges[playerName] : 0;
                             const eloChangeText = eloChange >= 0 ? `+${eloChange}` : `${eloChange}`;
-
                             storedDataDiv.innerHTML += `
                                 <div>
                                     <p><strong>Match ${index + 1}:</strong> ${match.date} | Équipe 1: ${match.team1.join(', ')} | Équipe 2: ${match.team2.join(', ')} | Résultat: ${getResultText(match.result)} | Points ELO: ${eloChangeText}</p>
@@ -401,6 +457,7 @@ document.getElementById('showPlayerMatches').addEventListener('click', function(
         alert('Aucun joueur sélectionné.');
     }
 });
+
 
 // Fonction pour récupérer les joueurs depuis Firebase et remplir la liste déroulante
 function populatePlayerSelect() {

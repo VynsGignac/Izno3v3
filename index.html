@@ -89,6 +89,11 @@
     <div class="container">
         <div class="form-container">
             <form id="matchForm">
+				<div class="section">
+					<label for="user">Utilisateur :</label>
+					<input type="text" id="user" name="user" required>
+				</div>
+
                 <div class="section">
                     <label for="date">Date :</label>
                     <input type="date" id="date" name="date" required><br><br>
@@ -120,7 +125,6 @@
                         <option value="">Sélectionnez le résultat</option>
                         <option value="team1">Équipe 1 gagne</option>
                         <option value="team2">Équipe 2 gagne</option>
-                        <option value="draw">Match nul</option>
                     </select>
                 </div>
 
@@ -161,7 +165,11 @@
             const today = new Date();
             const formattedDate = today.toISOString().split('T')[0];
             document.getElementById('date').value = formattedDate;
-
+			
+			const storedUser = localStorage.getItem('user');
+			if (storedUser) {
+			document.getElementById('user').value = storedUser;
+			}
             // Charger les joueurs depuis localStorage
             updatePlayerSelect();
         });
