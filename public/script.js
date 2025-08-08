@@ -378,7 +378,9 @@ document.getElementById('showMatches').addEventListener('click', function() {
                     matchElement.className = 'match-item';
                     matchElement.innerHTML = `
                         <div>
-                            <p><strong>Match ${index + 1}:</strong> ${match.date || 'Date inconnue'} | Auteur: ${match.user || 'Inconnu'} | Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'} | Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'} | Résultat: ${getResultText(match.result)}</p>
+                            <p><strong>Match ${index + 1} | Date: ${match.date || 'Date inconnue'} | Auteur: ${match.user || 'Inconnu'}</strong></p>
+                            <p>Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'}</p>
+                            <p>Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'}</p>
                         </div>
                         <div>
                             <button class="edit-button" onclick="editMatch('${matchId}')">Modifier</button>
