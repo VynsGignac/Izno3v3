@@ -3,6 +3,8 @@
 let eloRatings = {};
 let matchHistory = [];
 
+const scriptVersion = "local 0.0.3";
+
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 //const firebaseConfig = {
@@ -209,11 +211,13 @@ document.getElementById('matchForm').addEventListener('submit', function(event) 
                 console.error("Erreur lors de la mise à jour du match : ", error);
                 alert('Erreur lors de la mise à jour du match.');
             });
+			document.getElementById('showMatches').click();
     } else {
         // Ajouter un nouveau match dans Firebase
         saveDataToFirebase(matchData);
     }
 	populatePlayerSelect();
+	
 });
 
 // Fonction pour réinitialiser le formulaire
@@ -546,7 +550,7 @@ function updateEloRatingsInApp(eloRatings) {
   // Vous pouvez mettre à jour votre interface utilisateur ici
 }
 
-const scriptVersion = "local 0.0.3";
+
 
 // Fonction pour afficher la version dans le DOM
 function displayVersion() {
