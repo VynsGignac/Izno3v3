@@ -3,7 +3,7 @@
 let eloRatings = {};
 let matchHistory = [];
 
-const scriptVersion = "local 0.0.4";
+const scriptVersion = "local 0.0.5";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -677,5 +677,105 @@ function editMatch(matchId) {
             alert('Erreur lors de la récupération des données du match.');
         });
 }
+
+document.getElementById('showPlayerPartners').addEventListener('click', function() {
+    const playerName = document.getElementById('playerSelect').value;
+    if (playerName) {
+        firebase.database().ref('matchData').once('value')
+            .then((snapshot) => {
+                const matches = snapshot.val();
+                if (matches) {
+                    const partners = {};
+                    const opponents = {};
+
+                    Object.values(matches).forEach(match => {
+                        let isPlayerInTeam1 = match.team1.includes(playerName);
+                        let isPlayerInTeam2 = match.team2.includes(playerName);
+
+                        if (isPlayerInTeam1 || isPlayerInTeam2) {
+                            let partnerTeam = isPlayerInTeam1 ? match.team1 : match.team2;
+                            let opponentTeam = isPlayerInTeam1 ? match.team2 : match.team1;
+
+                            // Mettre à jour les partenaires
+                            partnerTeam.forEach(partner => {
+                                if (partner !== playerName) {
+                                    if (!partners[partner]) {
+                                        partners[partner] = { totalMatches: 0, victories: 0 };
+                                    }
+                                    partners[partner].totalMatches++;
+
+                                    if ((isPlayerInTeam1 && match.result === 'team1') ||
+                                        (isPlayerInTeam2 && match.result === 'team2')) {
+                                        partners[partner].victories++;
+                                    }
+                                }
+                            });
+
+                            // Mettre à jour les adversaires
+                            opponentTeam.forEach(opponent => {
+                                if (!opponents[opponent]) {
+                                    opponents[opponent] = { totalMatches: 0, victories: 0 };
+                                }
+                                opponents[opponent].totalMatches++;
+
+                                if ((isPlayerInTeam1 && match.result === 'team1') ||
+                                    (isPlayerInTeam2 && match.result === 'team2')) {
+                                    opponents[opponent].victories++;
+                                }
+                            });
+                        }
+                    });
+
+                    const storedDataDiv = document.getElementById('storedData');
+                    storedDataDiv.innerHTML = `<h2>Statistiques pour ${playerName}</h2>`;
+
+                    // Fonction pour trier et afficher les joueurs
+                    const displayPlayers = (players, title) => {
+                        if (Object.keys(players).length > 0) {
+                            const playersArray = Object.entries(players).map(([player, stats]) => ({
+                                player,
+                                ...stats,
+                                winPercentage: stats.totalMatches > 0 ? (stats.victories / stats.totalMatches) * 100 : 0
+                            }));
+
+                            playersArray.sort((a, b) => {
+                                if (b.winPercentage !== a.winPercentage) {
+                                    return b.winPercentage - a.winPercentage;
+                                } else {
+                                    return b.totalMatches - a.totalMatches;
+                                }
+                            });
+
+                            storedDataDiv.innerHTML += `<h3>${title}</h3><ul>`;
+                            playersArray.forEach(({ player, totalMatches, winPercentage }) => {
+                                storedDataDiv.innerHTML += `<li>${player} : ${totalMatches} matchs (${winPercentage.toFixed(2)}% de victoires)</li>`;
+                            });
+                            storedDataDiv.innerHTML += `</ul>`;
+                        } else {
+                            storedDataDiv.innerHTML += `<p>Aucun ${title.toLowerCase()} trouvé pour ce joueur.</p>`;
+                        }
+                    };
+
+                    // Afficher les partenaires
+                    displayPlayers(partners, "Partenaires");
+
+                    // Afficher les adversaires
+                    displayPlayers(opponents, "Adversaires");
+                } else {
+                    alert('Aucune donnée enregistrée dans Firebase.');
+                }
+            })
+            .catch((error) => {
+                console.error("Erreur lors de la récupération des données depuis Firebase : ", error);
+                alert('Erreur lors de la récupération des données.');
+            });
+    } else {
+        alert('Aucun joueur sélectionné.');
+    }
+});
+
+
+
+
 // Appeler la fonction pour afficher la version lorsque la page se charge
 document.addEventListener('DOMContentLoaded', displayVersion);
