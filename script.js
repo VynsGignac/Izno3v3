@@ -3,7 +3,7 @@
 let eloRatings = {};
 let matchHistory = [];
 
-const scriptVersion = "web 0.0.5";
+const scriptVersion = "web 0.0.6";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -363,28 +363,37 @@ function calculateEloRatings(matches) {
 }
 
 
-// Fonction pour afficher les matchs
 document.getElementById('showMatches').addEventListener('click', function() {
     firebase.database().ref('matchData').once('value')
         .then((snapshot) => {
             const matches = snapshot.val();
             const storedDataDiv = document.getElementById('storedData');
-
             if (matches) {
                 storedDataDiv.innerHTML = '<h2>Historique des Matchs</h2>';
 
-                Object.entries(matches).forEach(([matchId, match], index) => {
+                // Convertir l'objet en tableau et trier par date décroissante
+                const matchesArray = Object.entries(matches);
+                matchesArray.sort((a, b) => {
+                    return new Date(b[1].date) - new Date(a[1].date);
+                });
+
+                // Calculer le nombre total de matchs
+                const totalMatches = matchesArray.length;
+
+                // Afficher les matchs triés avec un index décroissant
+                matchesArray.forEach(([matchId, match], index) => {
+                    const displayIndex = totalMatches - index; // Index décroissant
                     const matchElement = document.createElement('div');
                     matchElement.className = 'match-item';
                     matchElement.innerHTML = `
                         <div>
-                            <p><strong>Match ${index + 1} | Date: ${match.date || 'Date inconnue'} | Auteur: ${match.user || 'Inconnu'}</strong></p>
+                            <p><strong>Match ${displayIndex} | Date: ${match.date || 'Date inconnue'} | Auteur: ${match.user || 'Inconnu'}</strong></p>
                             <p>Équipe 1: ${match.team1 ? match.team1.join(', ') : 'Inconnu'}</p>
                             <p>Équipe 2: ${match.team2 ? match.team2.join(', ') : 'Inconnu'}</p>
                         </div>
                         <div>
                             <button class="edit-button" onclick="editMatch('${matchId}')">Modifier</button>
-							<button class="delete-button" onclick="deleteMatch('${matchId}')">Supprimer</button>
+                            <button class="delete-button" onclick="deleteMatch('${matchId}')">Supprimer</button>
                         </div>
                     `;
                     storedDataDiv.appendChild(matchElement);
@@ -398,6 +407,9 @@ document.getElementById('showMatches').addEventListener('click', function() {
             alert('Erreur lors de la récupération des données.');
         });
 });
+
+
+
 
 document.getElementById('showPlayerMatches').addEventListener('click', function() {
     const playerName = document.getElementById('playerSelect').value;
@@ -467,7 +479,6 @@ function populatePlayerSelect() {
         .then((snapshot) => {
             const matches = snapshot.val();
             const players = new Set(); // Utiliser un Set pour éviter les doublons
-
             if (matches) {
                 // Parcourir tous les matchs et collecter les noms des joueurs
                 Object.values(matches).forEach(match => {
@@ -480,11 +491,15 @@ function populatePlayerSelect() {
                 });
             }
 
-            // Remplir la liste déroulante avec les joueurs
+            // Convertir le Set en tableau et trier par ordre alphabétique (sans tenir compte des majuscules)
+            const sortedPlayers = Array.from(players).sort((a, b) =>
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
+            );
+
+            // Remplir la liste déroulante avec les joueurs triés
             const playerSelect = document.getElementById('playerSelect');
             playerSelect.innerHTML = '<option value="">-- Sélectionnez un joueur --</option>'; // Option par défaut
-
-            players.forEach(player => {
+            sortedPlayers.forEach(player => {
                 const option = document.createElement('option');
                 option.value = player;
                 option.textContent = player;
@@ -496,6 +511,7 @@ function populatePlayerSelect() {
             alert('Erreur lors de la récupération des joueurs.');
         });
 }
+
 
 // Appeler la fonction pour remplir la liste déroulante lorsque la page se charge
 document.addEventListener('DOMContentLoaded', populatePlayerSelect);
@@ -773,6 +789,9 @@ document.getElementById('showPlayerPartners').addEventListener('click', function
         alert('Aucun joueur sélectionné.');
     }
 });
+
+
+
 
 // Appeler la fonction pour afficher la version lorsque la page se charge
 document.addEventListener('DOMContentLoaded', displayVersion);
