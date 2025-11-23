@@ -3,7 +3,7 @@
 let eloRatings = {};
 let matchHistory = [];
 
-const scriptVersion = "web 0.0.6";
+const scriptVersion = "Web 0.0.7";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -790,6 +790,97 @@ document.getElementById('showPlayerPartners').addEventListener('click', function
     }
 });
 
+// Fonction pour remplir toutes les listes déroulantes des joueurs
+function populateAllPlayerSelects() {
+    firebase.database().ref('matchData').once('value')
+        .then((snapshot) => {
+            const matches = snapshot.val();
+            const players = new Set();
+            if (matches) {
+                Object.values(matches).forEach(match => {
+                    if (match.team1) match.team1.forEach(player => players.add(player));
+                    if (match.team2) match.team2.forEach(player => players.add(player));
+                });
+            }
+
+            // Convertir en tableau et trier par ordre alphabétique
+            const sortedPlayers = Array.from(players).sort((a, b) =>
+                a.localeCompare(b, { sensitivity: 'base' })
+            );
+
+            // Remplir chaque liste déroulante
+            document.querySelectorAll('.player-select').forEach(selectElement => {
+                selectElement.innerHTML = '<option value="">-- Sélectionnez un joueur --</option>';
+                sortedPlayers.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player;
+                    option.textContent = player;
+                    selectElement.appendChild(option);
+                });
+
+                // Ajouter l'option "Autre..."
+                const otherOption = document.createElement('option');
+                otherOption.value = "other";
+                otherOption.textContent = "-- Ajouter un nouveau joueur --";
+                selectElement.appendChild(otherOption);
+            });
+
+            // Gérer la sélection de "Autre..."
+            document.querySelectorAll('.player-select').forEach(selectElement => {
+                selectElement.addEventListener('change', function() {
+                    if (this.value === "other") {
+                        const newPlayer = prompt("Entrez le nom du nouveau joueur :");
+                        if (newPlayer && newPlayer.trim() !== "") {
+                            // Ajouter le nouveau joueur à la liste
+                            const option = document.createElement('option');
+                            option.value = newPlayer;
+                            option.textContent = newPlayer;
+                            this.insertBefore(option, this.lastChild);
+                            this.value = newPlayer;
+                        } else {
+                            this.value = ""; // Réinitialiser si annulé
+                        }
+                    }
+                });
+            });
+        })
+        .catch((error) => {
+            console.error("Erreur lors de la récupération des joueurs : ", error);
+            alert('Erreur lors de la récupération des joueurs.');
+        });
+}
+
+// Appeler la fonction au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    populateAllPlayerSelects();
+    // Autres initialisations...
+});
+
+// Gestion du formulaire
+document.getElementById('matchForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    // Récupérer les valeurs des joueurs
+    const team1 = [
+        document.getElementById('player1_1').value,
+        document.getElementById('player1_2').value,
+        document.getElementById('player1_3').value
+    ];
+    const team2 = [
+        document.getElementById('player2_1').value,
+        document.getElementById('player2_2').value,
+        document.getElementById('player2_3').value
+    ];
+
+    // Vérifier que tous les joueurs sont sélectionnés
+    if (team1.includes("") || team1.includes("other") || team2.includes("") || team2.includes("other")) {
+        alert("Veuillez sélectionner tous les joueurs.");
+        return;
+    }
+
+    // Suite de ton code pour soumettre le match...
+    console.log("Équipe 1 :", team1);
+    console.log("Équipe 2 :", team2);
+});
 
 
 
